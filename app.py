@@ -151,7 +151,10 @@ if st.session_state.df is not None:
                     else:
                         prompt = user_query
                         
-                    response = st.session_state.agent.run_query(prompt)
+                    if st.session_state.agent is None:
+                        response = "⚠️ The AI Agent wasn't initialized properly (likely due to a previous error). Please refresh the page and re-upload your CSV file."
+                    else:
+                        response = st.session_state.agent.run_query(prompt)
                     st.markdown(response)
                     st.session_state.chat_history.append({"role": "assistant", "content": response})
 
@@ -163,7 +166,7 @@ if st.session_state.df is not None:
         with st.spinner("Running anomaly detection..."):
             from pipeline.tools.anomaly_detector import set_context_df as set_anom
             set_anom(df)
-            anomalies = detect_anomalies("all")
+            anomalies = detect_anomalies.invoke({"product_name": "all"})
             
             if "No significant" in anomalies or "Error" in anomalies:
                 st.info(anomalies)
@@ -183,7 +186,7 @@ if st.session_state.df is not None:
         with st.spinner("Running restock predictor..."):
             from pipeline.tools.restock_predictor import set_context_df as set_rest
             set_rest(df)
-            restock_info = predict_restock("all")
+            restock_info = predict_restock.invoke({"product_name": "all"})
             
             if "No restock urgency" in restock_info or "Error" in restock_info:
                 st.info(restock_info)
@@ -211,9 +214,9 @@ if st.session_state.df is not None:
                 # Compile some insights
                 from pipeline.tools.revenue_forecaster import set_context_df as set_rev
                 set_rev(df)
-                forecast = forecast_revenue("next week")
-                anom = detect_anomalies("all")
-                restk = predict_restock("all")
+                forecast = forecast_revenue.invoke({"timeframe": "next week"})
+                anom = detect_anomalies.invoke({"product_name": "all"})
+                restk = predict_restock.invoke({"product_name": "all"})
                 
                 insights_text = f"Next Week Forecast:\n{forecast}\n\nAnomalies:\n{anom}\n\nRestock Alerts:\n{restk}"
                 

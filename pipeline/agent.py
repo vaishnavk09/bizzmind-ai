@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 from langchain_groq import ChatGroq
-from langchain.agents import initialize_agent, AgentType
-from langchain.memory import ConversationBufferMemory
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from dotenv import load_dotenv
 
 from pipeline.tools.trend_analyzer import analyze_trends, set_context_df as set_trend_df
@@ -24,12 +25,12 @@ class BizMindAgent:
             print("WARNING: GROQ_API_KEY not set. Agent will not work properly.")
             
         self.llm = ChatGroq(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             temperature=0,
             api_key=api_key
         )
         
-        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.memory = InMemorySaver()
         self.agent = self._setup_agent()
 
     def _setup_agent(self):
@@ -57,22 +58,25 @@ class BizMindAgent:
             "If asked in Hindi, respond in Hindi. Always end with one actionable recommendation."
         )
         
-        agent = initialize_agent(
-            tools=tools,
-            llm=self.llm,
-            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,
-            memory=self.memory,
-            agent_kwargs={"prefix": system_message}
+        agent_executor = create_react_agent(
+            model=self.llm, 
+            tools=tools, 
+            prompt=system_message,
+            checkpointer=self.memory
         )
-        return agent
+        return agent_executor
 
     def run_query(self, question: str) -> str:
         """
         Runs the agent on the user question and returns the answer string.
         """
         try:
-            response = self.agent.run(question)
-            return response
+            config = {"configurable": {"thread_id": "bizmind_session"}}
+            response = self.agent.invoke({"messages": [("user", question)]}, config=config)
+            
+            messages = response.get("messages", [])
+            if messages:
+                return messages[-1].content
+            return "No response generated."
         except Exception as e:
             return f"Error executing query: {str(e)}"
