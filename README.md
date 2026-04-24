@@ -1,4 +1,4 @@
-# BizMind AI 🧠
+# BizMind AI 🧠  Demo:   https://bizzmind-ai.streamlit.app/
 > AI-powered Business Intelligence for Small Businesses
 
 ## Problem
