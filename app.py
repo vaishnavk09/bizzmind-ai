@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Page config
 st.set_page_config(
     page_title="BizMind AI",
-    page_icon="🧠",
+    page_icon="",
     layout="wide"
 )
 
@@ -64,8 +64,8 @@ def process_uploaded_file(file):
 
 # Sidebar
 with st.sidebar:
-    st.title("🧠 BizMind AI")
-    st.caption("BI for every business, big or small")
+    st.title("BizMind AI")
+    st.caption("Business Intelligence for every business, big or small")
     
     st.session_state.language = st.radio("Language / भाषा", ["English", "Hindi"])
     
