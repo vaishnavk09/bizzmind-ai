@@ -1,0 +1,12 @@
+langchain
+langchain-groq
+langchain-community
+faiss-cpu
+sentence-transformers
+streamlit
+plotly
+pandas
+numpy
+reportlab
+python-dotenv
+huggingface-hub

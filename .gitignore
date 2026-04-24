@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.env
+.venv
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+# Streamlit
+.streamlit/
+
+# Project-specific generated data
+data/mock_store.csv
+*.log
+
+# FAISS and other vector stores (if stored locally)
+faiss_index/
+vectorstore/
+*.faiss
+*.pkl
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
