@@ -1,6 +1,7 @@
 langchain
 langchain-groq
 langchain-community
+langgraph
 faiss-cpu
 sentence-transformers
 streamlit
@@ -10,3 +11,4 @@ numpy
 reportlab
 python-dotenv
 huggingface-hub
+torchvision
