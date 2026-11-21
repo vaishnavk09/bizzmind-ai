@@ -1,64 +1,85 @@
 from langchain.tools import tool
 import pandas as pd
 import numpy as np
+from typing import TYPE_CHECKING
 
-# Global context set by agent.py
+if TYPE_CHECKING:
+    from pipeline.tools.base import ToolContext
+
 _CONTEXT_DF = None
 
 def set_context_df(df: pd.DataFrame):
     global _CONTEXT_DF
     _CONTEXT_DF = df
 
-@tool
-def detect_anomalies(product_name: str) -> str:
-    """
-    Detects anomalies in sales (unusual drops or spikes).
-    Input should be a product name or 'all'.
-    """
-    if _CONTEXT_DF is None or _CONTEXT_DF.empty:
-        return "Error: No data available."
 
-    df = _CONTEXT_DF.copy()
-    
+def _run_detection(df: pd.DataFrame, product_name: str) -> str:
+    df = df.copy()
     if product_name.lower() != "all":
-        df = df[df['product'].str.lower() == product_name.lower()]
+        df = df[df["product"].str.lower() == product_name.lower()]
         if df.empty:
             return f"No data found for product: {product_name}."
 
-    # Group by week and product
-    weekly_sales = df.groupby([pd.Grouper(key='date', freq='W-MON'), 'product'])['quantity_sold'].sum().reset_index()
-    
+    weekly_sales = (
+        df.groupby([pd.Grouper(key="date", freq="W-MON"), "product"])["quantity_sold"]
+        .sum()
+        .reset_index()
+    )
+
     anomalies = []
-    
-    for product in weekly_sales['product'].unique():
-        prod_data = weekly_sales[weekly_sales['product'] == product].sort_values('date')
+    for product in weekly_sales["product"].unique():
+        prod_data = weekly_sales[weekly_sales["product"] == product].sort_values("date")
         if len(prod_data) < 2:
             continue
-            
-        # Calculate rolling mean and std over the last 4 weeks (roughly 30 days)
-        # Shift by 1 so the current week is not included in the mean
-        prod_data['mean_4w'] = prod_data['quantity_sold'].shift(1).rolling(window=4, min_periods=1).mean()
-        prod_data['std_4w'] = prod_data['quantity_sold'].shift(1).rolling(window=4, min_periods=1).std().fillna(0)
-        
-        current_week = prod_data.iloc[-1]
-        mean = current_week['mean_4w']
-        std = current_week['std_4w']
-        current_qty = current_week['quantity_sold']
-        
+
+        prod_data = prod_data.copy()
+        prod_data["mean_4w"] = prod_data["quantity_sold"].shift(1).rolling(window=4, min_periods=1).mean()
+        prod_data["std_4w"] = prod_data["quantity_sold"].shift(1).rolling(window=4, min_periods=1).std().fillna(0)
+
+        current = prod_data.iloc[-1]
+        mean, std, qty = current["mean_4w"], current["std_4w"], current["quantity_sold"]
+
         if pd.isna(mean) or mean == 0:
             continue
-            
-        # Flag if current week > 2 std devs from mean
-        # Or if it's a huge percentage drop
-        z_score = (current_qty - mean) / std if std > 0 else 0
-        pct_change = ((current_qty - mean) / mean) * 100
-        
-        if abs(z_score) > 2 or abs(pct_change) > 40:
-            severity = "HIGH" if abs(pct_change) > 60 else ("MEDIUM" if abs(pct_change) > 40 else "LOW")
-            direction = "dropped" if pct_change < 0 else "spiked"
-            anomalies.append(f"ANOMALY [{severity}]: {product} sales {direction} {abs(pct_change):.0f}% vs last month average.")
 
-    if not anomalies:
-        return "No significant anomalies detected."
-    
-    return "\n".join(anomalies)
+        z = (qty - mean) / std if std > 0 else 0
+        pct = ((qty - mean) / mean) * 100
+
+        if abs(z) > 2 or abs(pct) > 40:
+            severity = "HIGH" if abs(pct) > 60 else ("MEDIUM" if abs(pct) > 40 else "LOW")
+            direction = "dropped" if pct < 0 else "spiked"
+            anomalies.append(
+                f"ANOMALY [{severity}]: {product} sales {direction} {abs(pct):.0f}% "
+                f"vs 4-week avg (z={z:.1f})."
+            )
+
+    return "\n".join(anomalies) if anomalies else "No significant anomalies detected."
+
+
+def make_anomaly_tool(ctx: "ToolContext"):
+    """Returns a detect_anomalies tool bound to the given ToolContext."""
+
+    @tool
+    def detect_anomalies(product_name: str) -> str:
+        """
+        Detects unusual sales spikes or drops for a product.
+        Uses z-score and percentage-change over a rolling 4-week window.
+        Input: product name or 'all'.
+        """
+        if ctx.df is None or ctx.df.empty:
+            return "Error: No data available."
+        return _run_detection(ctx.df, product_name)
+
+    return detect_anomalies
+
+
+@tool
+def detect_anomalies(product_name: str) -> str:
+    """
+    Detects unusual sales spikes or drops for a product.
+    Uses z-score and percentage-change over a rolling 4-week window.
+    Input: product name or 'all'.
+    """
+    if _CONTEXT_DF is None or _CONTEXT_DF.empty:
+        return "Error: No data available."
+    return _run_detection(_CONTEXT_DF, product_name)

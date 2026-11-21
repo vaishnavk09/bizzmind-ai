@@ -1,14 +1,28 @@
-langchain
-langchain-groq
-langchain-community
-langgraph
-faiss-cpu
-sentence-transformers
-streamlit
-plotly
-pandas
-numpy
-reportlab
-python-dotenv
-huggingface-hub
-torchvision
+# Core LLM / Agent
+langchain>=0.3
+langchain-groq>=0.2
+langchain-community>=0.3
+langchain-core>=0.3
+langgraph>=0.2
+
+# Vector store & embeddings
+faiss-cpu>=1.8
+sentence-transformers>=3.0
+huggingface-hub>=0.24
+
+# Hybrid RAG — BM25
+rank-bm25>=0.2
+
+# Data & ML
+pandas>=2.2
+numpy>=1.26
+
+# Web app & visualisation
+streamlit>=1.35
+plotly>=5.20
+
+# PDF generation
+reportlab>=4.0
+
+# Utilities
+python-dotenv>=1.0

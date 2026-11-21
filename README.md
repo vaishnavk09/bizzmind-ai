@@ -1,86 +1,125 @@
-# BizMind AI 🧠  Demo:   https://bizzmind-ai.streamlit.app/
-> AI-powered Business Intelligence for Small Businesses
+# BizMind AI
 
-## Problem
-Currently, over 63 million small businesses (kiranas, boutiques, cafés) in India have zero access to proper Business Intelligence (BI) tools. They record sales but lack actionable insights to optimize their business operations and increase profitability.
+> AI-powered business intelligence for small shop owners in India.
 
-## Solution
-BizMind AI is an end-to-end Generative AI platform that takes raw CSV sales data and transforms it into plain English (and Hindi) insights. With a conversational interface and smart alerts, any small business owner can act like they have a dedicated data analyst on staff.
+Upload your daily sales CSV and ask plain-English (or Hindi) questions like:
+"Which product is about to run out?" or "What was my revenue last week?"
 
-## Architecture Diagram
+---
+
+## Architecture
 
 ```
-+----------------+       +-------------------+       +-----------------------+
-|                |       |                   |       |                       |
-|   Sales CSV    +-------> Data Ingestion &  +------->    FAISS Vector       |
-|   Upload       |       | Feature Eng.      |       |    Store (RAG)        |
-|                |       |                   |       |                       |
-+----------------+       +---------+---------+       +-----------+-----------+
-                                   |                             |
-                                   v                             v
-+----------------+       +-------------------+       +-----------------------+
-|                |       |                   |       |   LangChain Agent     |
-|   Streamlit    | <-----+  LangChain Tools  | <-----+   (Groq LLaMA 3.70b)  |
-|   Dashboard    |       |  (Anomalies, etc) |       |   & Conversation      |
-|                |       |                   |       |                       |
-+----------------+       +-------------------+       +-----------------------+
+CSV Upload / Demo Data
+        │
+        ▼
+DataIngestionPipeline          ← clean, feature-engineer, chunk
+        │                ╲
+        │                 FAISS Index + BM25 Corpus
+        │                         │
+        ▼                         ▼
+  DataFrame (pandas)       VectorStoreManager
+        │                 (Hybrid RAG: RRF fusion)
+        └────────┬────────────────┘
+                 │
+           ToolContext (injected — no globals)
+                 │
+         ┌───────┼───────────────────────┐
+         │       │                       │
+   analyze_  detect_  predict_   forecast_  generate_
+   trends  anomalies  restock    revenue    insight
+                 │
+         BizMindAgent  (LangGraph ReAct, Groq Llama 3.3-70b)
+                 │
+        Streamlit UI  (Dashboard / Chat / Alerts / Report)
 ```
 
-## Tech Stack
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![LangChain](https://img.shields.io/badge/LangChain-latest-green.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.35.0-red.svg)
-![Groq](https://img.shields.io/badge/Groq-LLaMA3-yellow.svg)
+---
 
-## Features
-- **Data Ingestion & Cleaning**: Automatically handles missing values and adds derived features (e.g., day of week, revenue).
-- **RAG-based Insight Generator**: Converts sales records into vector embeddings (FAISS) for conversational Q&A.
-- **Smart Tools**: Includes anomaly detection, restock prediction, trend analysis, and revenue forecasting using linear regression.
-- **Conversational Agent**: Chat with your data using Groq's LLaMA 3 in natural language.
-- **Automated PDF Reports**: Click a button to generate a comprehensive weekly report for offline viewing.
+## Quickstart
 
-## Demo
-*(Add demo GIF here)*
+```bash
+# 1. Clone and enter the project
+cd bizzmind-ai
 
-## Setup & Run
+# 2. Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
 
-1. **Clone the repository and install dependencies**:
-   ```bash
-   git clone <repo_url>
-   cd bizzmind-ai
-   pip install -r requirements.txt
-   ```
+# 3. Install dependencies
+pip install -r requirements.txt
 
-2. **Configure API Keys**:
-   Edit the `.env` file and add your Groq API key:
-   ```env
-   GROQ_API_KEY=gsk_your_actual_key_here
-   ```
+# 4. Configure your API key
+cp .env.example .env
+# Edit .env and add your GROQ_API_KEY (https://console.groq.com)
 
-3. **Generate Mock Data**:
-   ```bash
-   python data/generate_mock.py
-   ```
-   *(This creates `data/mock_store.csv`)*
+# 5. (Optional) Generate demo data
+python data/generate_mock.py
 
-4. **Run the Dashboard**:
-   ```bash
-   streamlit run app.py
-   ```
+# 6. Launch the app
+streamlit run app.py
+```
 
-## Sample Insights
-- "Top product: Cooking Oil (₹45,200 revenue). Peak day: Saturday."
-- "ANOMALY [HIGH]: Rice sales dropped 42% vs last month average."
-- "Cooking Oil: ~3 days remaining. RESTOCK NOW."
-- "Projected next week revenue: ₹28,400 (+12% vs this week)."
+---
 
-## Business Impact
-- **Time saved**: Instant analysis instead of manual calculations.
-- **Lost revenue prevented**: Restock alerts avoid out-of-stock scenarios.
-- **Better marketing**: Knowing peak days and top products helps focus promotional efforts.
+## Key Features
 
-## Future Roadmap
-- WhatsApp integration via Twilio
-- Voice input in Hindi
-- Multi-store support
-- Mobile app integration
+| Feature | Detail |
+|---|---|
+| **Hybrid RAG** | FAISS dense search + BM25 sparse search, fused via Reciprocal Rank Fusion |
+| **ReAct Agent** | LangGraph agent with 5 specialist tools and few-shot system prompt |
+| **Revenue Forecasting** | Linear trend + 90% bootstrap confidence interval |
+| **Anomaly Detection** | Rolling z-score + percentage change, severity-ranked |
+| **Restock Predictor** | Sales-velocity-based stockout estimation |
+| **Tool Trace Panel** | Every agent response shows which tools were called and why |
+| **Demo Mode** | One-click dataset load — no upload required |
+| **RAG Evaluation** | Offline golden-set evaluator (context recall + faithfulness) |
+| **Multi-language** | English and Hindi support |
+| **PDF Reports** | Auto-generated weekly summary with AI insights |
+
+---
+
+## RAG Evaluation
+
+```bash
+python -m eval.rag_eval
+# Outputs eval/eval_results.json with per-question pass/fail and aggregate scores
+```
+
+---
+
+## Project Structure
+
+```
+bizzmind-ai/
+├── app.py                      # Streamlit entrypoint
+├── requirements.txt
+├── .env.example
+├── pipeline/
+│   ├── agent.py                # BizMindAgent (LangGraph ReAct)
+│   ├── ingestion.py            # DataIngestionPipeline
+│   ├── vector_store.py         # Hybrid RAG (FAISS + BM25 + RRF)
+│   ├── report.py               # PDF report generation
+│   └── tools/
+│       ├── base.py             # ToolContext dataclass
+│       ├── trend_analyzer.py
+│       ├── anomaly_detector.py
+│       ├── restock_predictor.py
+│       ├── revenue_forecaster.py
+│       └── insight_generator.py
+├── eval/
+│   └── rag_eval.py             # Offline RAG evaluation suite
+└── data/
+    └── generate_mock.py        # Mock store data generator
+```
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | ✅ | From https://console.groq.com |
+| `LANGCHAIN_TRACING_V2` | Optional | Set `true` to enable LangSmith tracing |
+| `LANGCHAIN_API_KEY` | Optional | LangSmith key |
+| `LANGCHAIN_PROJECT` | Optional | LangSmith project name |

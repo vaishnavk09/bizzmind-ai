@@ -1,39 +1,43 @@
-# Byte-compiled / optimized / DLL files
+# Environment
+.env
+*.env
+
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Virtual Environments
-venv/
-env/
-ENV/
-.env
-.venv
-
-# Caches
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
 .pytest_cache/
 .mypy_cache/
-.cache/
 
-# Streamlit
-.streamlit/
+# Virtual environment
+venv/
+env/
+.venv/
 
-# Project-specific generated data
-data/mock_store.csv
-*.log
-
-# FAISS and other vector stores (if stored locally)
+# FAISS index (large binary, regenerate from data)
 faiss_index/
-vectorstore/
-*.faiss
-*.pkl
 
-# IDEs and Editors
+# Temp / generated files
+temp_uploaded.csv
+reports/
+*.pdf
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Data (optional — keep mock, ignore real uploads)
+bizzmind-ai/data/*.csv
+!bizzmind-ai/data/mock_store.csv
+
+# Logs
+logs/
+*.log
